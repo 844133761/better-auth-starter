@@ -15,7 +15,8 @@ import {
 interface ConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
+  busy?: boolean;
   title: string;
   description: string;
   confirmText?: string;
@@ -34,15 +35,11 @@ export function ConfirmationDialog({
   cancelText = "Cancel",
   confirmVariant = "default",
   children,
+  busy = false,
 }: ConfirmationDialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
-  };
-
   // Fixed to handle state changes properly
   const handleOpenChange = (open: boolean) => {
-    if (!open && isOpen) {
+    if (!open && isOpen && !busy) {
       onClose();
     }
   };
@@ -56,9 +53,15 @@ export function ConfirmationDialog({
         </AlertDialogHeader>
         {children}
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel disabled={busy} onClick={onClose}>
+            {cancelText}
+          </AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleConfirm}
+            disabled={busy}
+            onClick={(event) => {
+              event.preventDefault();
+              void onConfirm();
+            }}
             className={
               confirmVariant === "destructive"
                 ? "bg-destructive text-white hover:bg-destructive/90"

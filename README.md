@@ -1,161 +1,50 @@
-# Zexa Auth Starter
+# 管理控制台
 
-A modern, production-ready Next.js boilerplate with comprehensive authentication, admin dashboard, and user management features. Built by Zexa for rapid application development.
+基于 Next.js 16、Better Auth、PostgreSQL、Drizzle、TanStack Query 与 TanStack Table 的后台项目。
 
-## ✨ Features
+## 本地运行
 
-### 🔐 Authentication
-- **Email & Password Authentication** with email verification
-- **Session Management** with secure token handling
-- **Account Linking** support
-- **Role-based Access Control** (Admin, User roles)
+1. 运行 pnpm install --frozen-lockfile。
+2. 复制 .env.example 为 .env，填写 DATABASE_URL 和随机生成的 BETTER_AUTH_SECRET。
+3. 运行 pnpm db:migrate，创建认证表与菜单表，并初始化系统管理、用户管理、菜单管理三个导航项。
+4. 运行 pnpm dev，打开 http://localhost:3000。
 
-### 👥 User Management
-- **User Registration & Login** with form validation
-- **Email Verification** system
-- **Profile Management**
-- **User Banning/Unbanning** with expiration dates
-- **Session Revocation** for security
+## 页面与权限
 
-### 🛡️ Admin Dashboard
-- **User Management Interface** - View, edit, ban/unban users
-- **Role Assignment** - Manage user permissions
-- **User Actions** - Delete users, revoke sessions
-- **Responsive Admin UI** with modern design
+- / 自动转到后台；/admin 默认进入个人中心。
+- /auth 在同一个页面切换登录和注册。
+- /admin/users：用户搜索、角色筛选、服务端排序与分页，以及原有用户管理操作。
+- /admin/profile：所有已登录用户均可访问，支持修改姓名、验证旧密码后修改密码、拖拽或选择头像上传。
+- /admin/roles：默认提供超级管理员与普通用户，也可创建自定义角色。超级管理员只可查看，始终拥有全部菜单权限；普通用户可编辑基础菜单权限，默认角色均不可删除。
+- /admin/menus：目录和菜单的树形管理，包括创建、编辑、移动、排序、显示/隐藏及删除。
+- 旧的 /auth/login、/auth/register 和 /dashboard 地址自动重定向；原介绍页与独立用户仪表盘已移除。
 
-**Admin Panel**
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/be71d4d2-abde-4acc-93a0-29041940b9ad" />
+代理层负责快速检查登录 Cookie，服务端布局验证真实会话。登录和注册默认进入个人中心，其他页面、接口和侧边栏使用数据库角色菜单权限校验；未登录 API 返回 401，无菜单权限返回 403。多个角色的权限合并，撤销后下一次请求立即生效。所有普通账号自动获得普通用户基础角色，可叠加自定义角色。用户管理的「设置角色」与角色管理的成员列表互通，角色筛选包含自定义角色；Better Auth 的 admin/user 变更也同步到默认角色成员。超级管理员独立使用，角色本身只读，账号成员可通过用户管理调整。账号封禁、删除及设置用户角色仍仅限超级管理员，拥有用户管理菜单权限的普通用户可以查看用户列表。角色管理菜单包含角色与成员授权能力，授予时应明确管理职责。
 
+未设置 RESEND_API_KEY 时，注册后可以直接登录；设置后开启邮件验证。现有管理员账号的验证状态不变。Google 和 GitHub 第三方登录已移除，仅保留邮箱密码登录。
 
-### 🎨 UI/UX
-- **Modern Design System** with Tailwind CSS
-- **Responsive Layout** for all devices
-- **Component Library** with Radix UI primitives
-- **Form Validation** with React Hook Form + Zod
-- **Toast Notifications** for user feedback
+## 菜单管理
 
-## 🛠️ Tech Stack
+菜单数据持久化到 PostgreSQL，修改后通过 TanStack Query 自动刷新表格和导航。用户与菜单表格均由 TanStack Table 驱动。
 
-- **Framework:** Next.js 16 with App Router
-- **Authentication:** Better Auth
-- **Database:** PostgreSQL with Drizzle ORM
-- **Styling:** Tailwind CSS
-- **UI Components:** Radix UI
-- **Form Handling:** React Hook Form
-- **Validation:** Zod
-- **Email:** Resend
-- **TypeScript:** Full type safety
+- 目录只用于分组，只有目录可以包含子项，最多 8 层。
+- 菜单路径必须唯一，且使用 /admin/ 开头的站内路径；例如 /admin/reports。
+- 已有路径打开对应页面；新路径打开以菜单名称命名的空内容页，具体业务页面需另外实现。
+- 可选择图标、调整上级目录、排序与显示状态。隐藏目录会一并隐藏其导航子项，且其自定义页面不可访问；显示状态与角色菜单权限分别生效。
+- 删除目录前需要先移动或删除子项。系统项不能删除或修改其类型、路由和自身显示状态。
+- 后台写接口验证输入及请求来源；树变更使用事务和数据库锁避免并发移动产生循环。
 
-## 🚀 Quick Start
+## 检查
 
-### Prerequisites
+- pnpm lint
+- pnpm typecheck
+- pnpm build
+- pnpm test:integration
 
-- Node.js 18+ 
-- PostgreSQL database
-- Resend account (for email functionality)
+集成测试使用正在运行的本地开发服务及 .env 数据库。运行前在当前终端设置 TEST_ADMIN_EMAIL、TEST_ADMIN_PASSWORD，测试会创建临时用户和目录并在结束后清理；不把账号密码写入文件。TEST_BASE_URL 默认为 http://localhost:3000，仅允许本地地址。邮件验证服务未配置时可完整验证注册流程。
 
-### Installation
+## 个人资料与头像存储
 
-1. **Clone the repository**
-    ```bash
-    git clone <repository-url>
-    cd zexa-auth-starter
-    ```
+头像使用 react-dropzone 选择或拖拽上传，支持 5 MB 内的静态 JPG、PNG、WebP。服务器验证真实图片内容与像素数量，使用 sharp 重新编码为 WebP 并裁剪至最多 512×512，再写入 .data/avatars；用户表保存头像 URL。图片接口要求登录。部署时需为 .data 配置持久化磁盘并纳入备份；多实例部署应改为共享存储。
 
-2. **Install dependencies**
-    ```bash
-    pnpm install
-    ```
-
-3. **Environment Setup**
-
-   Copy the `.env.example` file to `.env.local` and fill in the values.
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-4. **Database Setup**
-    ```bash
-    # Generate and run migrations
-    pnpm db:generate
-    pnpm db:migrate
-    ```
-
-5. **Start Development Server**
-    ```bash
-    pnpm dev
-    ```
-
-Visit `http://localhost:3000` to see your application!
-
-## 📁 Project Structure
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── admin/             # Admin dashboard pages
-│   ├── api/               # API routes
-│   ├── auth/              # Authentication pages
-│   └── dashboard/         # User dashboard
-├── components/            # React components
-│   ├── admin/            # Admin-specific components
-│   ├── auth/             # Authentication forms
-│   ├── landing/          # Landing page components
-│   └── ui/               # Reusable UI components
-├── db/                   # Database configuration
-├── lib/                  # Utility libraries
-└── utils/                # Helper functions
-```
-
-## 🔧 Available Scripts
-
-- `pnpm dev` - Start development server with Turbopack
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm lint` - Run ESLint
-- `pnpm db:generate` - Generate database migrations
-- `pnpm db:migrate` - Run database migrations
-- `pnpm db:push` - Push database migrations to the database
-- `pnpm db:studio` - Open the Drizzle ORM Studio
-
-## 🔑 Key Features Explained
-
-### Authentication Flow
-1. **Registration:** Users sign up with email/password
-2. **Email Verification:** Automated email verification process
-3. **Login:** Secure session-based authentication
-
-### Admin Features
-- **User Management:** Full CRUD operations on user accounts
-- **Role Management:** Assign and modify user roles
-- **Security Actions:** Ban users, revoke sessions, delete accounts
-- **Audit Trail:** Track user actions and changes
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy!
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙋 Support
-
-For support and questions:
-- Create an issue in this repository
-- Contact Zexa team
-
----
-
-**Built with ❤️ by Zexa**
-
-Ready to build something amazing? Get started with Zexa Auth Starter today!
+修改密码通过 Better Auth 验证旧密码，新密码 8–128 位，修改后撤销其他会话。测试仅修改临时测试用户的密码，不修改现有管理员账号。

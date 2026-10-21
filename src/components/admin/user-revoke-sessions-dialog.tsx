@@ -39,6 +39,7 @@ export function UserRevokeSessionsDialog({
   return (
     <ConfirmationDialog
       isOpen={isOpen}
+      busy={isLoading}
       onClose={onClose}
       onConfirm={handleRevokeSessions}
       title={`Revoke Sessions: ${user.name || user.email}`}

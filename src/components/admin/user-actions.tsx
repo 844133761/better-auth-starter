@@ -59,7 +59,7 @@ export function UserActions({ user, onActionComplete }: UserActionsProps) {
             }}
           >
             <Shield className="mr-2 h-4 w-4" />
-            <span>Update Role</span>
+            <span>设置角色</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {user.banned ? (
@@ -145,14 +145,16 @@ export function UserActions({ user, onActionComplete }: UserActionsProps) {
         }}
       />
 
-      <UserRoleDialog
-        user={user}
-        isOpen={showRoleDialog}
-        onClose={() => {
-          handleDialogClose(setShowRoleDialog);
-          onActionComplete();
-        }}
-      />
+      {showRoleDialog && (
+        <UserRoleDialog
+          user={user}
+          isOpen={showRoleDialog}
+          onClose={() => {
+            handleDialogClose(setShowRoleDialog);
+            onActionComplete();
+          }}
+        />
+      )}
     </>
   );
 }

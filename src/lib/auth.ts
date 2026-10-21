@@ -21,7 +21,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: Boolean(process.env.RESEND_API_KEY),
     resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
   },
   emailVerification: {
@@ -32,25 +32,14 @@ export const auth = betterAuth({
         text: `Click the link to verify your email: ${url}`,
       });
     },
-    sendOnSignUp: true,
+    sendOnSignUp: Boolean(process.env.RESEND_API_KEY),
     autoSignInAfterVerification: true,
   },
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-    },
-    google: {
-      prompt: "select_account",
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-  },
   plugins: [
-    nextCookies(),
     admin({
       defaultRole: "user",
       adminRoles: ["admin"],
     }),
+    nextCookies(),
   ],
 });

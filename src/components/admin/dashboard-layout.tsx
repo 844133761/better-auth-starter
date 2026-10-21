@@ -5,74 +5,43 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-
-import React from "react";
-import Link from "next/link";
+import { DashboardSidebar } from "./dashboard-sidebar";
+import { useNavigation } from "@/hooks/use-menus";
 import { usePathname } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
-import { DashboardSidebar } from "@/components/admin/dashboard-sidebar";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
-  const pathSegments = pathname.split("/").filter((segment) => segment);
-
-  const relevantSegments =
-    pathSegments[0] === "admin" ? pathSegments.slice(1) : pathSegments;
-
+  const { data = [] } = useNavigation();
+  const active = data.find((item) => item.path === pathname);
+  const parent = data.find((item) => item.id === active?.parentId);
   return (
     <SidebarProvider>
       <DashboardSidebar />
-      <SidebarInset className="bg-background overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/admin">Admin</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                {relevantSegments.length > 0 && <BreadcrumbSeparator />}
-                {relevantSegments.map((segment, index) => {
-                  const href = `/admin/${relevantSegments
-                    .slice(0, index + 1)
-                    .join("/")}`;
-                  const isLast = index === relevantSegments.length - 1;
-                  return (
-                    <React.Fragment key={href}>
-                      <BreadcrumbItem>
-                        {isLast ? (
-                          <BreadcrumbPage className="capitalize">
-                            {segment}
-                          </BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink asChild className="capitalize">
-                            <Link href={href}>{segment}</Link>
-                          </BreadcrumbLink>
-                        )}
-                      </BreadcrumbItem>
-                      {!isLast && <BreadcrumbSeparator />}
-                    </React.Fragment>
-                  );
-                })}
-              </BreadcrumbList>
-            </Breadcrumb>
+      <SidebarInset className="min-w-0 bg-white">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 md:px-8">
+          <div className="flex items-center gap-3 text-xs">
+            <SidebarTrigger className="-ml-2" />
+            <span className="h-4 border-l" />
+            <span className="text-slate-400">{parent?.name || "工作空间"}</span>
+            <ChevronRight className="size-3 text-slate-300" />
+            <span className="font-medium">
+              {pathname === "/admin/profile"
+                ? "个人中心"
+                : active?.name || "控制台"}
+            </span>
           </div>
+          <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <ShieldCheck className="size-3.5 text-emerald-500" />
+            安全工作空间
+          </span>
         </header>
-        {children}
+        <main className="min-w-0 flex-1 bg-slate-50/40">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
-};
-
-export default DashboardLayout;
+}

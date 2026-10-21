@@ -15,6 +15,27 @@
       "when": 1748003205524,
       "tag": "0001_superb_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792484189840,
+      "tag": "0002_melted_charles_xavier",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792486100070,
+      "tag": "0003_cultured_brood",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792486100071,
+      "tag": "0004_default_roles",
+      "breakpoints": true
     }
   ]
 }

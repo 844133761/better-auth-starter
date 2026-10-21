@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 
 import { Switch } from "@/components/ui/switch";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UserAddDialogProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function UserAddDialog({
   onClose,
   onSuccess,
 }: UserAddDialogProps) {
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -40,6 +42,7 @@ export function UserAddDialog({
     try {
       setIsLoading(true);
       await createUser(formData);
+      await queryClient.invalidateQueries({ queryKey: ["roles"] });
       toast.success(
         formData.autoVerify
           ? "User created and verified successfully"
@@ -67,6 +70,7 @@ export function UserAddDialog({
   return (
     <ConfirmationDialog
       isOpen={isOpen}
+      busy={isLoading}
       onClose={onClose}
       onConfirm={handleCreateUser}
       title="Add New User"
@@ -113,7 +117,7 @@ export function UserAddDialog({
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="role">Role</Label>
+          <Label htmlFor="role">默认角色</Label>
           <Select
             value={formData.role}
             onValueChange={(value: "user" | "admin") =>
@@ -124,8 +128,8 @@ export function UserAddDialog({
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="user">普通用户</SelectItem>
+              <SelectItem value="admin">超级管理员</SelectItem>
             </SelectContent>
           </Select>
         </div>

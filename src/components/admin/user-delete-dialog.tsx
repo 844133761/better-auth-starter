@@ -24,6 +24,7 @@ export function UserDeleteDialog({
       setIsLoading(true);
       await deleteUser(user.id);
       toast.success(`${user.name || user.email} has been deleted.`);
+      onClose();
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -36,6 +37,7 @@ export function UserDeleteDialog({
   return (
     <ConfirmationDialog
       isOpen={isOpen}
+      busy={isLoading}
       onClose={onClose}
       onConfirm={handleDeleteUser}
       title={`Delete User: ${user.name || user.email}`}

@@ -84,25 +84,12 @@ export async function createUser(data: {
     try {
       await authClient.sendVerificationEmail({
         email: data.email,
-        callbackURL: "/dashboard",
+        callbackURL: "/admin/profile",
       });
     } catch (error) {
       console.error("Failed to send verification email:", error);
       // Don't throw here as user was created successfully
     }
-  }
-
-  return res;
-}
-
-export async function updateUserRole(userId: string, role: string) {
-  const res = await authClient.admin.setRole({
-    userId,
-    role: role as "user" | "admin" | ("user" | "admin")[],
-  });
-
-  if (res?.error) {
-    throw new Error(res.error.message || "Failed to update user role");
   }
 
   return res;

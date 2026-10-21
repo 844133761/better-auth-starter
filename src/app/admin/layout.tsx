@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/admin/dashboard-layout";
 
 export default async function AdminLayout({
@@ -12,9 +12,7 @@ export default async function AdminLayout({
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== "admin") {
-    return notFound();
-  }
+  if (!session) redirect("/auth");
 
   return <DashboardLayout>{children}</DashboardLayout>;
 }

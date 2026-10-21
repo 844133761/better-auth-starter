@@ -1,4 +1,15 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  primaryKey,
+  check,
+  type AnyPgColumn,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { menuIcons } from "@/lib/menus";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -64,3 +75,67 @@ export const verification = pgTable("verification", {
     () => /* @__PURE__ */ new Date(),
   ),
 });
+
+export const menu = pgTable(
+  "menu",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    type: text("type", { enum: ["directory", "menu"] }).notNull(),
+    parentId: text("parent_id").references((): AnyPgColumn => menu.id, {
+      onDelete: "restrict",
+    }),
+    path: text("path").unique(),
+    icon: text("icon", { enum: menuIcons }).notNull().default("LayoutGrid"),
+    sort: integer("sort").notNull().default(0),
+    visible: boolean("visible").notNull().default(true),
+    system: boolean("system").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    check("menu_type_check", sql`${table.type} in ('directory', 'menu')`),
+    check(
+      "menu_path_check",
+      sql`(${table.type} = 'directory' and ${table.path} is null) or (${table.type} = 'menu' and ${table.path} is not null)`,
+    ),
+  ],
+);
+
+export const appRole = pgTable("app_role", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull().unique(),
+  description: text("description").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const roleMenu = pgTable(
+  "role_menu",
+  {
+    roleId: text("role_id")
+      .notNull()
+      .references(() => appRole.id, { onDelete: "cascade" }),
+    menuId: text("menu_id")
+      .notNull()
+      .references(() => menu.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.menuId] })],
+);
+
+export const userRole = pgTable(
+  "user_role",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => appRole.id, { onDelete: "restrict" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.roleId] })],
+);

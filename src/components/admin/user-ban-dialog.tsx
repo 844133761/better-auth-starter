@@ -50,6 +50,7 @@ export function UserBanDialog({ user, isOpen, onClose }: UserBanDialogProps) {
 
       await banUser(user.id, reason, banExpiresIn);
       toast.success(`${user.name || user.email} has been banned.`);
+      onClose();
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -62,6 +63,7 @@ export function UserBanDialog({ user, isOpen, onClose }: UserBanDialogProps) {
   return (
     <ConfirmationDialog
       isOpen={isOpen}
+      busy={isLoading}
       onClose={onClose}
       onConfirm={handleBanUser}
       title={`Ban User: ${user.name || user.email}`}

@@ -1,6 +1,17 @@
 import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { user, appRole, userRole } from "@/db/schema";
+import {
+  and,
+  eq,
+  ilike,
+  asc,
+  desc,
+  count,
+  inArray,
+  or,
+  isNull,
+} from "drizzle-orm";
+import { ADMIN_ROLE_ID, USER_ROLE_ID, isSystemRole } from "@/lib/roles";
 
 export interface UserWithDetails {
   id: string;
@@ -15,6 +26,8 @@ export interface UserWithDetails {
   createdAt: Date;
   avatarUrl: string;
   role?: string;
+  roleNames?: string[];
+  roleIds?: string[];
 }
 
 export interface GetUsersOptions {
@@ -31,53 +44,43 @@ export interface GetUsersOptions {
 export async function getUsers(
   options: GetUsersOptions = {},
 ): Promise<{ users: UserWithDetails[]; total: number }> {
-  // Build query for Better Auth
-  const query: Record<string, any> = {
-    limit: options.limit ?? 10,
-    offset: options.offset ?? 0,
-  };
-
-  // Sorting
-  if (options.sortBy) query.sortBy = options.sortBy;
-  if (options.sortDirection) query.sortDirection = options.sortDirection;
-
-  // Filtering by role
-  if (options.role) {
-    query.filterField = "role";
-    query.filterOperator = "eq";
-    query.filterValue = options.role;
-  }
-
-  // Filtering by status (active/banned)
-  if (options.status) {
-    query.filterField = "banned";
-    query.filterOperator = "eq";
-    query.filterValue = options.status === "banned" ? true : false;
-  }
-
-  // Filtering by email
-  if (options.email) {
-    query.searchField = "email";
-    query.searchOperator = "contains";
-    query.searchValue = options.email;
-  }
-
-  // Filtering by name
-  if (options.name) {
-    query.searchField = "name";
-    query.searchOperator = "contains";
-    query.searchValue = options.name;
-  }
-
-  // Get users from Better Auth
-  const result = await auth.api.listUsers({
-    headers: await headers(),
-    query,
-  });
-
-  if (!result.users) {
-    return { users: [], total: 0 };
-  }
+  const filters = [];
+  if (options.role === ADMIN_ROLE_ID) filters.push(eq(user.role, "admin"));
+  else if (options.role === USER_ROLE_ID)
+    filters.push(or(eq(user.role, "user"), isNull(user.role))!);
+  else if (options.role)
+    filters.push(
+      inArray(
+        user.id,
+        db
+          .select({ id: userRole.userId })
+          .from(userRole)
+          .where(eq(userRole.roleId, options.role)),
+      ),
+    );
+  if (options.email) filters.push(ilike(user.email, "%" + options.email + "%"));
+  if (options.name) filters.push(ilike(user.name, "%" + options.name + "%"));
+  if (options.status)
+    filters.push(eq(user.banned, options.status === "banned"));
+  const where = and(...filters);
+  const sortColumn = options.sortBy === "name" ? user.name : user.createdAt;
+  const [rows, totalRows, memberships] = await Promise.all([
+    db
+      .select()
+      .from(user)
+      .where(where)
+      .orderBy(
+        options.sortDirection === "asc" ? asc(sortColumn) : desc(sortColumn),
+      )
+      .limit(options.limit ?? 10)
+      .offset(options.offset ?? 0),
+    db.select({ total: count() }).from(user).where(where),
+    db
+      .select({ userId: userRole.userId, id: appRole.id, name: appRole.name })
+      .from(userRole)
+      .innerJoin(appRole, eq(appRole.id, userRole.roleId)),
+  ]);
+  const result = { users: rows, total: totalRows[0].total };
 
   // Query separate tables to get accounts information
   const accountsQuery = await db.query.account.findMany({
@@ -130,7 +133,25 @@ export async function getUsers(
       name: user.name,
       email: user.email,
       verified: user.emailVerified,
-      role: user.role,
+      role: user.role ?? "user",
+      roleIds:
+        user.role === "admin"
+          ? [ADMIN_ROLE_ID]
+          : [
+              USER_ROLE_ID,
+              ...memberships
+                .filter((m) => m.userId === user.id && !isSystemRole(m.id))
+                .map((m) => m.id),
+            ],
+      roleNames:
+        user.role === "admin"
+          ? ["超级管理员"]
+          : [
+              "普通用户",
+              ...memberships
+                .filter((m) => m.userId === user.id && !isSystemRole(m.id))
+                .map((m) => m.name),
+            ],
       banned,
       banReason,
       banExpires,

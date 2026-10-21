@@ -1,11 +1,17 @@
+import { requireMenuAccess } from "@/lib/permissions";
 import { NextRequest, NextResponse } from "next/server";
 import { getUsers } from "@/utils/users";
+import { apiError } from "@/lib/admin-auth";
 
 export async function GET(request: NextRequest) {
   try {
+    await requireMenuAccess("/admin/users");
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "10") || 10),
+    );
     const offset = (page - 1) * limit;
     const sortBy = searchParams.get("sortBy") || undefined;
     let sortDirection = searchParams.get("sortDirection") || undefined;
@@ -37,10 +43,6 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error("Error fetching users:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 },
-    );
+    return apiError(error);
   }
 }

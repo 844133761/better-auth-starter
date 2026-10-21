@@ -24,6 +24,7 @@ export function UserUnbanDialog({
       setIsLoading(true);
       await unbanUser(user.id);
       toast.success(`${user.name || user.email} has been unbanned.`);
+      onClose();
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -36,6 +37,7 @@ export function UserUnbanDialog({
   return (
     <ConfirmationDialog
       isOpen={isOpen}
+      busy={isLoading}
       onClose={onClose}
       onConfirm={handleUnbanUser}
       title={`Unban User: ${user.name || user.email}`}
