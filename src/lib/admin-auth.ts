@@ -18,7 +18,10 @@ export function validateWriteRequest(request?: Request, json = true) {
     if (request.headers.get("sec-fetch-site") === "cross-site") {
       throw new RequestError("请求来源不允许", 403);
     }
-    if (origin && origin !== new URL(request.url).origin)
+    const expectedOrigin = new URL(
+      process.env.BETTER_AUTH_URL || request.url,
+    ).origin;
+    if (origin && origin !== expectedOrigin)
       throw new RequestError("请求来源不允许", 403);
     if (
       json &&
